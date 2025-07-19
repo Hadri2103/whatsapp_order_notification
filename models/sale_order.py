@@ -11,25 +11,27 @@ class SaleOrder(models.Model):
 
     whatsapp_sent = fields.Boolean(string='WhatsApp Sent', default=False)
 
+    @api.model
+    def create(self, vals):
+        """Override create to send WhatsApp notification for new ecommerce orders"""
+        order = super(SaleOrder, self).create(vals)
+        
+        # Send WhatsApp notification for new ecommerce orders (regardless of payment status)
+        if order.website_id and not order.whatsapp_sent:
+            _logger.info(f"New ecommerce order created: {order.name} - triggering WhatsApp notifications")
+            # Send immediately for ecommerce orders
+            order._send_whatsapp_notification()
+            order._send_employee_notification()
+        
+        return order
+
     def action_confirm(self):
-        """Override to send WhatsApp notification after order confirmation"""
+        """Override to send WhatsApp notification after order confirmation (fallback)"""
         result = super(SaleOrder, self).action_confirm()
         
-        # Send WhatsApp notification for ecommerce orders
+        # Fallback: Send WhatsApp notification for ecommerce orders if not sent yet
         if self.website_id and not self.whatsapp_sent:
-            _logger.info(f"Triggering WhatsApp notifications for order {self.name}")
-            self._send_whatsapp_notification()
-            self._send_employee_notification()
-        
-        return result
-
-    def _confirm_online_order(self):
-        """Override website sale confirmation to ensure WhatsApp is sent"""
-        result = super(SaleOrder, self)._confirm_online_order() if hasattr(super(), '_confirm_online_order') else None
-        
-        # Additional trigger for website orders
-        if self.website_id and not self.whatsapp_sent:
-            _logger.info(f"Website order confirmation - sending WhatsApp for {self.name}")
+            _logger.info(f"Order confirmation fallback - sending WhatsApp for {self.name}")
             self._send_whatsapp_notification()
             self._send_employee_notification()
         
