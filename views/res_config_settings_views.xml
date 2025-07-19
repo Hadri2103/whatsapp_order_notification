@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_inherit" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.whatsapp</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="sale.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <div class="app_settings_block" data-string="WhatsApp Notifications" string="WhatsApp Notifications" data-key="whatsapp_notifications">
+                    <h2>WhatsApp Order Notifications</h2>
+                    <div class="row mt16 o_settings_container">
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="whatsapp_api_url"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="whatsapp_api_url"/>
+                                <div class="text-muted">
+                                    Enter your WhatsApp Business API endpoint URL
+                                </div>
+                                <field name="whatsapp_api_url" placeholder="https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID/messages"/>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="whatsapp_api_token"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="whatsapp_api_token"/>
+                                <div class="text-muted">
+                                    Enter your WhatsApp Business API access token
+                                </div>
+                                <field name="whatsapp_api_token" password="True"/>
+                            </div>
+                        </div>
+                        <div class="col-12 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="whatsapp_order_template"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="whatsapp_order_template"/>
+                                <div class="text-muted">
+                                    Customize the message template sent to customers. Available variables: {customer_name}, {order_name}, {amount_total}, {date_order}
+                                </div>
+                                <field name="whatsapp_order_template" widget="text"/>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>Employee Notifications</h2>
+                    <div class="row mt16 o_settings_container">
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="whatsapp_employee_phone"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="whatsapp_employee_phone"/>
+                                <div class="text-muted">
+                                    Phone number of the employee to notify for new orders (with country code)
+                                </div>
+                                <field name="whatsapp_employee_phone" placeholder="+1234567890"/>
+                            </div>
+                        </div>
+                        <div class="col-12 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="whatsapp_employee_template"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="whatsapp_employee_template"/>
+                                <div class="text-muted">
+                                    Customize the message template sent to employee. Available variables: {customer_name}, {order_name}, {amount_total}, {date_order}, {customer_phone}
+                                </div>
+                                <field name="whatsapp_employee_template" widget="text"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

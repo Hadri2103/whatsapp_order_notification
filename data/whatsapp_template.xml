@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Default WhatsApp message template -->
+        <record id="whatsapp_order_template_default" model="ir.config_parameter">
+            <field name="key">whatsapp.order_template</field>
+            <field name="value">Hello {customer_name}!
+
+Your order #{order_name} has been confirmed.
+
+Order Details:
+- Total Amount: {amount_total}
+- Order Date: {date_order}
+
+Thank you for your purchase!</field>
+        </record>
+    </data>
+</odoo>
