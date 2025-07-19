@@ -16,18 +16,10 @@ class ResConfigSettings(models.TransientModel):
         help='WhatsApp Business API access token'
     )
     
-    whatsapp_order_template = fields.Text(
+    whatsapp_order_template = fields.Char(
         string='Order Notification Template',
         config_parameter='whatsapp.order_template',
-        default="""Hello {customer_name}!
-
-Your order #{order_name} has been confirmed.
-
-Order Details:
-- Total Amount: {amount_total}
-- Order Date: {date_order}
-
-Thank you for your purchase!""",
+        default="Hello {customer_name}! Your order #{order_name} has been confirmed. Total: {amount_total}. Date: {date_order}. Thank you!",
         help='Template for order confirmation message. Available variables: {customer_name}, {order_name}, {amount_total}, {date_order}'
     )
     
@@ -37,17 +29,9 @@ Thank you for your purchase!""",
         help='Phone number of the employee to notify for new orders (with country code, e.g., +1234567890)'
     )
     
-    whatsapp_employee_template = fields.Text(
+    whatsapp_employee_template = fields.Char(
         string='Employee Notification Template',
         config_parameter='whatsapp.employee_template',
-        default="""🔔 New Order Alert!
-
-Customer: {customer_name}
-Order: #{order_name}
-Amount: {amount_total}
-Date: {date_order}
-Phone: {customer_phone}
-
-Please process this order.""",
+        default="🔔 New Order Alert! Customer: {customer_name}, Order: #{order_name}, Amount: {amount_total}, Date: {date_order}, Phone: {customer_phone}. Please process this order.",
         help='Template for employee notification message. Available variables: {customer_name}, {order_name}, {amount_total}, {date_order}, {customer_phone}'
     )

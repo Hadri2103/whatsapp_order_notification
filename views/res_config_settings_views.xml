@@ -42,7 +42,7 @@
                                 <div class="text-muted">
                                     Customize the message template sent to customers. Available variables: {customer_name}, {order_name}, {amount_total}, {date_order}
                                 </div>
-                                <field name="whatsapp_order_template" widget="text"/>
+                                <field name="whatsapp_order_template"/>
                             </div>
                         </div>
                     </div>
@@ -69,7 +69,7 @@
                                 <div class="text-muted">
                                     Customize the message template sent to employee. Available variables: {customer_name}, {order_name}, {amount_total}, {date_order}, {customer_phone}
                                 </div>
-                                <field name="whatsapp_employee_template" widget="text"/>
+                                <field name="whatsapp_employee_template"/>
                             </div>
                         </div>
                     </div>
