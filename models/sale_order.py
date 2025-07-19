@@ -12,41 +12,25 @@ class SaleOrder(models.Model):
     whatsapp_sent = fields.Boolean(string='WhatsApp Sent', default=False)
 
     def write(self, vals):
-        """Override write to detect when order gets customer information (checkout completion)"""
-        # Check if partner_id is being updated (customer info added during checkout)
-        partner_changed = 'partner_id' in vals and vals['partner_id']
-        
+        """Override write to detect when order status changes to 'sent' (Quotation sent)"""
         result = super(SaleOrder, self).write(vals)
         
-        # If partner was just set and this is a website order, check if ready for WhatsApp
-        if partner_changed and self.website_id and not self.whatsapp_sent:
-            self._check_whatsapp_ready()
+        # Check if state changed to 'sent' (Quotation sent) for ecommerce orders
+        if ('state' in vals and vals['state'] == 'sent' and 
+            self.website_id and not self.whatsapp_sent):
+            _logger.info(f"Ecommerce order status changed to 'Quotation sent': {self.name} - triggering WhatsApp notifications")
+            self._send_whatsapp_notification()
+            self._send_employee_notification()
         
         return result
 
-    def _check_whatsapp_ready(self):
-        """Check if order is ready for WhatsApp notifications and send if ready"""
-        # Check if partner has phone number using safe method
-        has_phone = (hasattr(self.partner_id, 'phone') and self.partner_id.phone) or \
-                   (hasattr(self.partner_id, 'mobile') and self.partner_id.mobile)
-        
-        if (self.website_id and not self.whatsapp_sent and 
-            self.partner_id and self.partner_id.name != 'Public user' and
-            has_phone and
-            self.order_line and  # Has products
-            self.partner_id.email and '@' in self.partner_id.email):  # Has valid email
-            
-            _logger.info(f"Ecommerce order ready for WhatsApp: {self.name} - triggering notifications")
-            self._send_whatsapp_notification()
-            self._send_employee_notification()
-
     def action_confirm(self):
-        """Override to send WhatsApp notification after order confirmation (fallback)"""
+        """Override to send WhatsApp notification after order confirmation (fallback for other cases)"""
         result = super(SaleOrder, self).action_confirm()
         
         # Fallback: Send WhatsApp notification for ecommerce orders if not sent yet
         if self.website_id and not self.whatsapp_sent:
-            _logger.info(f"Order confirmation fallback - sending WhatsApp for {self.name}")
+            _logger.info(f"Order confirmation - sending WhatsApp for {self.name}")
             self._send_whatsapp_notification()
             self._send_employee_notification()
         
