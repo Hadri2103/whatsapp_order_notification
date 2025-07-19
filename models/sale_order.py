@@ -17,6 +17,19 @@ class SaleOrder(models.Model):
         
         # Send WhatsApp notification for ecommerce orders
         if self.website_id and not self.whatsapp_sent:
+            _logger.info(f"Triggering WhatsApp notifications for order {self.name}")
+            self._send_whatsapp_notification()
+            self._send_employee_notification()
+        
+        return result
+
+    def _confirm_online_order(self):
+        """Override website sale confirmation to ensure WhatsApp is sent"""
+        result = super(SaleOrder, self)._confirm_online_order() if hasattr(super(), '_confirm_online_order') else None
+        
+        # Additional trigger for website orders
+        if self.website_id and not self.whatsapp_sent:
+            _logger.info(f"Website order confirmation - sending WhatsApp for {self.name}")
             self._send_whatsapp_notification()
             self._send_employee_notification()
         
@@ -25,10 +38,14 @@ class SaleOrder(models.Model):
     def _send_whatsapp_notification(self):
         """Send WhatsApp notification to customer"""
         try:
+            _logger.info(f"Starting WhatsApp notification process for order {self.name}")
+            
             # Get WhatsApp configuration
             config = self.env['ir.config_parameter'].sudo()
             api_url = config.get_param('whatsapp.api_url')
             api_token = config.get_param('whatsapp.api_token')
+            
+            _logger.info(f"WhatsApp config - API URL: {'SET' if api_url else 'MISSING'}, Token: {'SET' if api_token else 'MISSING'}")
             
             if not api_url or not api_token:
                 _logger.warning("WhatsApp API configuration missing")
@@ -36,12 +53,15 @@ class SaleOrder(models.Model):
             
             # Get customer phone number
             phone = self._get_customer_phone()
+            _logger.info(f"Customer phone: {phone if phone else 'NOT FOUND'}")
+            
             if not phone:
                 _logger.warning(f"No phone number found for customer {self.partner_id.name}")
                 return False
             
             # Prepare message
             message = self._prepare_whatsapp_message()
+            _logger.info(f"Message prepared: {message[:50]}...")
             
             # Send WhatsApp message
             success = self._send_whatsapp_message(api_url, api_token, phone, message)
@@ -55,6 +75,18 @@ class SaleOrder(models.Model):
         except Exception as e:
             _logger.error(f"Error sending WhatsApp notification for order {self.name}: {str(e)}")
             return False
+
+    def action_send_whatsapp_manual(self):
+        """Manual action to send WhatsApp notifications (for testing)"""
+        for order in self:
+            if order.website_id:
+                _logger.info(f"Manual WhatsApp trigger for order {order.name}")
+                order.whatsapp_sent = False  # Reset to allow resending
+                order._send_whatsapp_notification()
+                order._send_employee_notification()
+            else:
+                _logger.warning(f"Order {order.name} is not a website order")
+        return True
 
     def _get_customer_phone(self):
         """Get customer phone number in international format"""
