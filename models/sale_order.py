@@ -11,19 +11,34 @@ class SaleOrder(models.Model):
 
     whatsapp_sent = fields.Boolean(string='WhatsApp Sent', default=False)
 
-    @api.model
-    def create(self, vals):
-        """Override create to send WhatsApp notification for new ecommerce orders"""
-        order = super(SaleOrder, self).create(vals)
+    def write(self, vals):
+        """Override write to detect when order gets customer information (checkout completion)"""
+        # Check if partner_id is being updated (customer info added during checkout)
+        partner_changed = 'partner_id' in vals and vals['partner_id']
         
-        # Send WhatsApp notification for new ecommerce orders (regardless of payment status)
-        if order.website_id and not order.whatsapp_sent:
-            _logger.info(f"New ecommerce order created: {order.name} - triggering WhatsApp notifications")
-            # Send immediately for ecommerce orders
-            order._send_whatsapp_notification()
-            order._send_employee_notification()
+        result = super(SaleOrder, self).write(vals)
         
-        return order
+        # If partner was just set and this is a website order, check if ready for WhatsApp
+        if partner_changed and self.website_id and not self.whatsapp_sent:
+            self._check_whatsapp_ready()
+        
+        return result
+
+    def _check_whatsapp_ready(self):
+        """Check if order is ready for WhatsApp notifications and send if ready"""
+        # Check if partner has phone number using safe method
+        has_phone = (hasattr(self.partner_id, 'phone') and self.partner_id.phone) or \
+                   (hasattr(self.partner_id, 'mobile') and self.partner_id.mobile)
+        
+        if (self.website_id and not self.whatsapp_sent and 
+            self.partner_id and self.partner_id.name != 'Public user' and
+            has_phone and
+            self.order_line and  # Has products
+            self.partner_id.email and '@' in self.partner_id.email):  # Has valid email
+            
+            _logger.info(f"Ecommerce order ready for WhatsApp: {self.name} - triggering notifications")
+            self._send_whatsapp_notification()
+            self._send_employee_notification()
 
     def action_confirm(self):
         """Override to send WhatsApp notification after order confirmation (fallback)"""
@@ -92,8 +107,16 @@ class SaleOrder(models.Model):
 
     def _get_customer_phone(self):
         """Get customer phone number in international format"""
-        phone = self.partner_id.phone or self.partner_id.mobile
+        phone = None
+        
+        # Try different phone field names that might exist in Odoo 18
+        if hasattr(self.partner_id, 'phone') and self.partner_id.phone:
+            phone = self.partner_id.phone
+        elif hasattr(self.partner_id, 'mobile') and self.partner_id.mobile:
+            phone = self.partner_id.mobile
+        
         if not phone:
+            _logger.warning(f"No phone field found for partner {self.partner_id.name}. Available fields: {[f for f in self.partner_id._fields.keys() if 'phone' in f.lower() or 'mobile' in f.lower()]}")
             return False
         
         # Clean phone number (remove spaces, dashes, etc.)
