@@ -72,6 +72,18 @@
                                 <field name="whatsapp_employee_template"/>
                             </div>
                         </div>
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="whatsapp_from_number"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="whatsapp_from_number"/>
+                                <div class="text-muted">
+                                    Your Twilio WhatsApp-enabled phone number. Leave empty for sandbox testing.
+                                </div>
+                                <field name="whatsapp_from_number" placeholder="+14155551234"/>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </xpath>

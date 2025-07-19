@@ -162,7 +162,9 @@ Thank you for your purchase!"""
             }
             
             # Format phone numbers for WhatsApp
-            from_number = 'whatsapp:+14155238886'  # Twilio Sandbox number
+            # Get from number from configuration or use sandbox as fallback
+            config_from_number = self.env['ir.config_parameter'].sudo().get_param('whatsapp.from_number')
+            from_number = f'whatsapp:{config_from_number}' if config_from_number else 'whatsapp:+14155238886'
             to_number = f'whatsapp:{phone}' if not phone.startswith('whatsapp:') else phone
             
             data = {

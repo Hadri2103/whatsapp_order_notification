@@ -35,3 +35,9 @@ class ResConfigSettings(models.TransientModel):
         default="🔔 New Order Alert! Customer: {customer_name}, Order: #{order_name}, Amount: {amount_total}, Date: {date_order}, Phone: {customer_phone}. Please process this order.",
         help='Template for employee notification message. Available variables: {customer_name}, {order_name}, {amount_total}, {date_order}, {customer_phone}'
     )
+    
+    whatsapp_from_number = fields.Char(
+        string='WhatsApp From Number',
+        config_parameter='whatsapp.from_number',
+        help='Your Twilio WhatsApp-enabled phone number (e.g., +14155551234). Leave empty to use sandbox number for testing.'
+    )
