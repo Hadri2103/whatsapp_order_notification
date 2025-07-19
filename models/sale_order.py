@@ -96,6 +96,65 @@ Thank you for your purchase!"""
     def _send_whatsapp_message(self, api_url, api_token, phone, message):
         """Send message via WhatsApp API"""
         try:
+            # Check if using Twilio API
+            if 'twilio.com' in api_url:
+                return self._send_twilio_message(api_url, api_token, phone, message)
+            else:
+                return self._send_meta_message(api_url, api_token, phone, message)
+                
+        except requests.exceptions.RequestException as e:
+            _logger.error(f"WhatsApp API request failed: {str(e)}")
+            return False
+
+    def _send_twilio_message(self, api_url, api_token, phone, message):
+        """Send message via Twilio WhatsApp API"""
+        try:
+            import base64
+            
+            # Extract Account SID from URL or use api_token format
+            if '|' in api_token:
+                account_sid, auth_token = api_token.split('|')
+            else:
+                # Assume api_token is auth_token and extract SID from URL
+                account_sid = api_url.split('/Accounts/')[1].split('/')[0]
+                auth_token = api_token
+            
+            # Twilio API endpoint
+            url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
+            
+            # Basic Auth for Twilio
+            credentials = base64.b64encode(f"{account_sid}:{auth_token}".encode()).decode()
+            headers = {
+                'Authorization': f'Basic {credentials}',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            
+            # Format phone numbers for WhatsApp
+            from_number = 'whatsapp:+14155238886'  # Twilio Sandbox number
+            to_number = f'whatsapp:{phone}' if not phone.startswith('whatsapp:') else phone
+            
+            data = {
+                'From': from_number,
+                'To': to_number,
+                'Body': message
+            }
+            
+            response = requests.post(url, headers=headers, data=data, timeout=30)
+            
+            if response.status_code in [200, 201]:
+                _logger.info(f"Twilio WhatsApp message sent successfully")
+                return True
+            else:
+                _logger.error(f"Twilio API error: {response.status_code} - {response.text}")
+                return False
+                
+        except Exception as e:
+            _logger.error(f"Twilio WhatsApp API error: {str(e)}")
+            return False
+
+    def _send_meta_message(self, api_url, api_token, phone, message):
+        """Send message via Meta WhatsApp API"""
+        try:
             headers = {
                 'Authorization': f'Bearer {api_token}',
                 'Content-Type': 'application/json'
@@ -114,11 +173,11 @@ Thank you for your purchase!"""
             if response.status_code == 200:
                 return True
             else:
-                _logger.error(f"WhatsApp API error: {response.status_code} - {response.text}")
+                _logger.error(f"Meta WhatsApp API error: {response.status_code} - {response.text}")
                 return False
                 
-        except requests.exceptions.RequestException as e:
-            _logger.error(f"WhatsApp API request failed: {str(e)}")
+        except Exception as e:
+            _logger.error(f"Meta WhatsApp API error: {str(e)}")
             return False
 
     def _send_employee_notification(self):

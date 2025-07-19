@@ -7,13 +7,13 @@ class ResConfigSettings(models.TransientModel):
     whatsapp_api_url = fields.Char(
         string='WhatsApp API URL',
         config_parameter='whatsapp.api_url',
-        help='WhatsApp Business API endpoint URL'
+        help='For Twilio: https://api.twilio.com/2010-04-01/Accounts/YOUR_ACCOUNT_SID/Messages.json'
     )
     
     whatsapp_api_token = fields.Char(
         string='WhatsApp API Token',
         config_parameter='whatsapp.api_token',
-        help='WhatsApp Business API access token'
+        help='For Twilio: Use format ACCOUNT_SID|AUTH_TOKEN or just AUTH_TOKEN'
     )
     
     whatsapp_order_template = fields.Char(
