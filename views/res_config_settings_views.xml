@@ -11,38 +11,26 @@
                     <div class="row mt16 o_settings_container">
                         <div class="col-12 col-lg-6 o_setting_box">
                             <div class="o_setting_left_pane">
-                                <field name="whatsapp_api_url"/>
-                            </div>
-                            <div class="o_setting_right_pane">
-                                <label for="whatsapp_api_url"/>
-                                <div class="text-muted">
-                                    Enter your WhatsApp Business API endpoint URL
-                                </div>
-                                <field name="whatsapp_api_url" placeholder="https://graph.facebook.com/v18.0/YOUR_PHONE_NUMBER_ID/messages"/>
-                            </div>
-                        </div>
-                        <div class="col-12 col-lg-6 o_setting_box">
-                            <div class="o_setting_left_pane">
                                 <field name="whatsapp_api_token"/>
                             </div>
                             <div class="o_setting_right_pane">
                                 <label for="whatsapp_api_token"/>
                                 <div class="text-muted">
-                                    Enter your WhatsApp Business API access token
+                                    Twilio credentials in format: ACCOUNT_SID|AUTH_TOKEN
                                 </div>
-                                <field name="whatsapp_api_token" password="True"/>
+                                <field name="whatsapp_api_token" password="True" placeholder="ACxxxxxxx|your_auth_token"/>
                             </div>
                         </div>
-                        <div class="col-12 o_setting_box">
+                        <div class="col-12 col-lg-6 o_setting_box">
                             <div class="o_setting_left_pane">
-                                <field name="whatsapp_order_template"/>
+                                <field name="whatsapp_from_number"/>
                             </div>
                             <div class="o_setting_right_pane">
-                                <label for="whatsapp_order_template"/>
+                                <label for="whatsapp_from_number"/>
                                 <div class="text-muted">
-                                    Customize the message template sent to customers. Available variables: {customer_name}, {order_name}, {amount_total}, {date_order}
+                                    Your Twilio WhatsApp-enabled phone number
                                 </div>
-                                <field name="whatsapp_order_template"/>
+                                <field name="whatsapp_from_number" placeholder="+14155551234"/>
                             </div>
                         </div>
                     </div>
@@ -60,28 +48,28 @@
                                 <field name="whatsapp_employee_phone" placeholder="+1234567890"/>
                             </div>
                         </div>
-                        <div class="col-12 o_setting_box">
+                        <div class="col-12 col-lg-6 o_setting_box">
                             <div class="o_setting_left_pane">
-                                <field name="whatsapp_employee_template"/>
+                                <field name="whatsapp_customer_template_sid"/>
                             </div>
                             <div class="o_setting_right_pane">
-                                <label for="whatsapp_employee_template"/>
+                                <label for="whatsapp_customer_template_sid"/>
                                 <div class="text-muted">
-                                    Customize the message template sent to employee. Available variables: {customer_name}, {order_name}, {amount_total}, {date_order}, {customer_phone}
+                                    Twilio WhatsApp template SID for customer notifications
                                 </div>
-                                <field name="whatsapp_employee_template"/>
+                                <field name="whatsapp_customer_template_sid" placeholder="HX8264756fadd035142c0905cca6b6b594"/>
                             </div>
                         </div>
                         <div class="col-12 col-lg-6 o_setting_box">
                             <div class="o_setting_left_pane">
-                                <field name="whatsapp_from_number"/>
+                                <field name="whatsapp_employee_template_sid"/>
                             </div>
                             <div class="o_setting_right_pane">
-                                <label for="whatsapp_from_number"/>
+                                <label for="whatsapp_employee_template_sid"/>
                                 <div class="text-muted">
-                                    Your Twilio WhatsApp-enabled phone number. Leave empty for sandbox testing.
+                                    Twilio WhatsApp template SID for employee notifications
                                 </div>
-                                <field name="whatsapp_from_number" placeholder="+14155551234"/>
+                                <field name="whatsapp_employee_template_sid" placeholder="HX3e140b59baa66fb67a2172a7442ec2d1"/>
                             </div>
                         </div>
                     </div>

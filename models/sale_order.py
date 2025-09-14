@@ -1,4 +1,3 @@
-import requests
 import logging
 from odoo import models, fields, api
 from odoo.exceptions import UserError
@@ -37,19 +36,22 @@ class SaleOrder(models.Model):
         return result
 
     def _send_whatsapp_notification(self):
-        """Send WhatsApp notification to customer"""
+        """Send WhatsApp notification to customer using Twilio SDK"""
         try:
             _logger.info(f"Starting WhatsApp notification process for order {self.name}")
             
             # Get WhatsApp configuration
             config = self.env['ir.config_parameter'].sudo()
-            api_url = config.get_param('whatsapp.api_url')
             api_token = config.get_param('whatsapp.api_token')
+            customer_template_sid = config.get_param('whatsapp.customer_template_sid')
+            from_number = config.get_param('whatsapp.from_number')
             
-            _logger.info(f"WhatsApp config - API URL: {'SET' if api_url else 'MISSING'}, Token: {'SET' if api_token else 'MISSING'}")
+            if not api_token:
+                _logger.warning("WhatsApp API token missing")
+                return False
             
-            if not api_url or not api_token:
-                _logger.warning("WhatsApp API configuration missing")
+            if not customer_template_sid:
+                _logger.warning("Twilio customer template SID missing")
                 return False
             
             # Get customer phone number
@@ -60,12 +62,8 @@ class SaleOrder(models.Model):
                 _logger.warning(f"No phone number found for customer {self.partner_id.name}")
                 return False
             
-            # Prepare message
-            message = self._prepare_whatsapp_message()
-            _logger.info(f"Message prepared: {message[:50]}...")
-            
-            # Send WhatsApp message
-            success = self._send_whatsapp_message(api_url, api_token, phone, message)
+            # Send WhatsApp message to customer using Twilio SDK
+            success = self._send_twilio_customer_template_message(api_token, phone, customer_template_sid, from_number)
             
             if success:
                 self.whatsapp_sent = True
@@ -112,128 +110,24 @@ class SaleOrder(models.Model):
         
         return phone
 
-    def _prepare_whatsapp_message(self):
-        """Prepare WhatsApp message content"""
-        template = self.env['ir.config_parameter'].sudo().get_param(
-            'whatsapp.order_template',
-            """Hello {customer_name}!
 
-Your order #{order_name} has been confirmed.
-
-Order Details:
-- Total Amount: {amount_total}
-- Order Date: {date_order}
-
-Thank you for your purchase!"""
-        )
-        
-        return template.format(
-            customer_name=self.partner_id.name,
-            order_name=self.name,
-            amount_total=f"{self.amount_total:.2f} {self.currency_id.name}",
-            date_order=self.date_order.strftime('%Y-%m-%d %H:%M')
-        )
-
-    def _send_whatsapp_message(self, api_url, api_token, phone, message):
-        """Send message via WhatsApp API"""
-        try:
-            # Check if using Twilio API
-            if 'twilio.com' in api_url:
-                return self._send_twilio_message(api_url, api_token, phone, message)
-            else:
-                return self._send_meta_message(api_url, api_token, phone, message)
-                
-        except requests.exceptions.RequestException as e:
-            _logger.error(f"WhatsApp API request failed: {str(e)}")
-            return False
-
-    def _send_twilio_message(self, api_url, api_token, phone, message):
-        """Send message via Twilio WhatsApp API"""
-        try:
-            import base64
-            
-            # Extract Account SID from URL or use api_token format
-            if '|' in api_token:
-                account_sid, auth_token = api_token.split('|')
-            else:
-                # Assume api_token is auth_token and extract SID from URL
-                account_sid = api_url.split('/Accounts/')[1].split('/')[0]
-                auth_token = api_token
-            
-            # Twilio API endpoint
-            url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
-            
-            # Basic Auth for Twilio
-            credentials = base64.b64encode(f"{account_sid}:{auth_token}".encode()).decode()
-            headers = {
-                'Authorization': f'Basic {credentials}',
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
-            
-            # Format phone numbers for WhatsApp
-            # Get from number from configuration or use sandbox as fallback
-            config_from_number = self.env['ir.config_parameter'].sudo().get_param('whatsapp.from_number')
-            from_number = f'whatsapp:{config_from_number}' if config_from_number else 'whatsapp:+14155238886'
-            to_number = f'whatsapp:{phone}' if not phone.startswith('whatsapp:') else phone
-            
-            data = {
-                'From': from_number,
-                'To': to_number,
-                'Body': message
-            }
-            
-            response = requests.post(url, headers=headers, data=data, timeout=30)
-            
-            if response.status_code in [200, 201]:
-                _logger.info(f"Twilio WhatsApp message sent successfully")
-                return True
-            else:
-                _logger.error(f"Twilio API error: {response.status_code} - {response.text}")
-                return False
-                
-        except Exception as e:
-            _logger.error(f"Twilio WhatsApp API error: {str(e)}")
-            return False
-
-    def _send_meta_message(self, api_url, api_token, phone, message):
-        """Send message via Meta WhatsApp API"""
-        try:
-            headers = {
-                'Authorization': f'Bearer {api_token}',
-                'Content-Type': 'application/json'
-            }
-            
-            data = {
-                'to': phone,
-                'type': 'text',
-                'text': {
-                    'body': message
-                }
-            }
-            
-            response = requests.post(api_url, json=data, headers=headers, timeout=30)
-            
-            if response.status_code == 200:
-                return True
-            else:
-                _logger.error(f"Meta WhatsApp API error: {response.status_code} - {response.text}")
-                return False
-                
-        except Exception as e:
-            _logger.error(f"Meta WhatsApp API error: {str(e)}")
-            return False
 
     def _send_employee_notification(self):
-        """Send WhatsApp notification to employee about new order"""
+        """Send WhatsApp notification to employee about new order using Twilio SDK"""
         try:
             # Get WhatsApp configuration
             config = self.env['ir.config_parameter'].sudo()
-            api_url = config.get_param('whatsapp.api_url')
             api_token = config.get_param('whatsapp.api_token')
             employee_phone = config.get_param('whatsapp.employee_phone')
+            employee_template_sid = config.get_param('whatsapp.employee_template_sid')
+            from_number = config.get_param('whatsapp.from_number')
             
-            if not api_url or not api_token or not employee_phone:
+            if not api_token or not employee_phone:
                 _logger.warning("WhatsApp employee notification configuration missing")
+                return False
+            
+            if not employee_template_sid:
+                _logger.warning("Twilio employee template SID missing for employee notification")
                 return False
             
             # Clean employee phone number
@@ -242,11 +136,8 @@ Thank you for your purchase!"""
                 _logger.warning("Invalid employee phone number format")
                 return False
             
-            # Prepare employee message
-            message = self._prepare_employee_message()
-            
-            # Send WhatsApp message to employee
-            success = self._send_whatsapp_message(api_url, api_token, employee_phone, message)
+            # Send WhatsApp message to employee using Twilio SDK
+            success = self._send_twilio_employee_template_message(api_token, employee_phone, employee_template_sid, from_number)
             
             if success:
                 _logger.info(f"Employee notification sent for order {self.name}")
@@ -256,31 +147,6 @@ Thank you for your purchase!"""
         except Exception as e:
             _logger.error(f"Error sending employee notification for order {self.name}: {str(e)}")
             return False
-
-    def _prepare_employee_message(self):
-        """Prepare WhatsApp message content for employee"""
-        template = self.env['ir.config_parameter'].sudo().get_param(
-            'whatsapp.employee_template',
-            """🔔 New Order Alert!
-
-Customer: {customer_name}
-Order: #{order_name}
-Amount: {amount_total}
-Date: {date_order}
-Phone: {customer_phone}
-
-Please process this order."""
-        )
-        
-        customer_phone = self.partner_id.phone or self.partner_id.mobile or 'Not provided'
-        
-        return template.format(
-            customer_name=self.partner_id.name,
-            order_name=self.name,
-            amount_total=f"{self.amount_total:.2f} {self.currency_id.name}",
-            date_order=self.date_order.strftime('%Y-%m-%d %H:%M'),
-            customer_phone=customer_phone
-        )
 
     def _clean_phone_number(self, phone):
         """Clean and format phone number"""
@@ -295,3 +161,117 @@ Please process this order."""
             phone = phone[1:]
         
         return phone if phone else False
+    
+    def _get_customer_template_variables(self):
+        """Get template variables for customer Twilio template"""
+        import json
+        
+        # Customer template variables: 1: client name, 2: date, 3: amount
+        variables = {
+            "1": self.partner_id.name,  # Customer name
+            "2": self.date_order.strftime('%Y-%m-%d'),  # Date
+            "3": f"{self.amount_total:.2f} {self.currency_id.name}",  # Amount
+        }
+        
+        return json.dumps(variables)
+    
+    def _get_employee_template_variables(self):
+        """Get template variables for employee Twilio template"""
+        import json
+        
+        # Employee template variables: 1: client name, 2: order reference, 3: amount, 4: date, 5: phone number
+        variables = {
+            "1": self.partner_id.name,  # Customer name
+            "2": self.name,  # Order number
+            "3": f"{self.amount_total:.2f} {self.currency_id.name}",  # Amount
+            "4": self.date_order.strftime('%Y-%m-%d %H:%M'),  # Date
+            "5": self.partner_id.phone or self.partner_id.mobile or 'Not provided'  # Customer phone
+        }
+        
+        return json.dumps(variables)
+    
+    def _send_twilio_customer_template_message(self, api_token, phone, template_sid, from_number=None):
+        """Send WhatsApp message to customer using Twilio SDK with template"""
+        try:
+            from twilio.rest import Client
+            
+            # Extract Account SID and Auth Token
+            if '|' in api_token:
+                account_sid, auth_token = api_token.split('|')
+            else:
+                _logger.error("API token must be in format ACCOUNT_SID|AUTH_TOKEN for Twilio SDK")
+                return False
+            
+            # Initialize Twilio client
+            client = Client(account_sid, auth_token)
+            
+            # Format phone numbers for WhatsApp
+            to_number = f'whatsapp:+{phone}' if not phone.startswith('+') else f'whatsapp:{phone}'
+            from_number = f'whatsapp:{from_number}' if from_number else 'whatsapp:+14155238886'
+            
+            # Prepare customer template variables
+            content_variables = self._get_customer_template_variables()
+            
+            _logger.info(f"Sending customer Twilio template message to {to_number} with template {template_sid}")
+            _logger.info(f"Customer template variables: {content_variables}")
+            
+            # Send message using Twilio SDK
+            message = client.messages.create(
+                content_sid=template_sid,
+                to=to_number,
+                from_=from_number,
+                content_variables=content_variables
+            )
+            
+            _logger.info(f"Customer Twilio message sent successfully. SID: {message.sid}")
+            return True
+            
+        except ImportError:
+            _logger.error("Twilio SDK not installed. Please install with: pip install twilio")
+            return False
+        except Exception as e:
+            _logger.error(f"Error sending customer Twilio template message: {str(e)}")
+            return False
+    
+    def _send_twilio_employee_template_message(self, api_token, phone, template_sid, from_number=None):
+        """Send WhatsApp message to employee using Twilio SDK with template"""
+        try:
+            from twilio.rest import Client
+            
+            # Extract Account SID and Auth Token
+            if '|' in api_token:
+                account_sid, auth_token = api_token.split('|')
+            else:
+                _logger.error("API token must be in format ACCOUNT_SID|AUTH_TOKEN for Twilio SDK")
+                return False
+            
+            # Initialize Twilio client
+            client = Client(account_sid, auth_token)
+            
+            # Format phone numbers for WhatsApp
+            to_number = f'whatsapp:+{phone}' if not phone.startswith('+') else f'whatsapp:{phone}'
+            from_number = f'whatsapp:{from_number}' if from_number else 'whatsapp:+14155238886'
+            
+            # Prepare employee template variables
+            content_variables = self._get_employee_template_variables()
+            
+            _logger.info(f"Sending employee Twilio template message to {to_number} with template {template_sid}")
+            _logger.info(f"Employee template variables: {content_variables}")
+            
+            # Send message using Twilio SDK
+            message = client.messages.create(
+                content_sid=template_sid,
+                to=to_number,
+                from_=from_number,
+                content_variables=content_variables
+            )
+            
+            _logger.info(f"Employee Twilio message sent successfully. SID: {message.sid}")
+            return True
+            
+        except ImportError:
+            _logger.error("Twilio SDK not installed. Please install with: pip install twilio")
+            return False
+        except Exception as e:
+            _logger.error(f"Error sending employee Twilio template message: {str(e)}")
+            return False

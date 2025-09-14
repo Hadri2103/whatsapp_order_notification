@@ -12,44 +12,58 @@ An Odoo 18 module that automatically sends WhatsApp notifications to customers a
 
 ## Installation
 
-1. Clone this repository to your Odoo addons directory:
+1. Install the Twilio Python SDK:
+   ```bash
+   pip install twilio
+   ```
+
+2. Clone this repository to your Odoo addons directory:
    ```bash
    git clone https://github.com/Hadri2103/whatsapp_order_notification.git
    ```
 
-2. Restart your Odoo server
+3. Restart your Odoo server
 
-3. Go to Apps > Update Apps List
+4. Go to Apps > Update Apps List
 
-4. Search for "WhatsApp Order Notification" and install
+5. Search for "WhatsApp Order Notification" and install
 
 ## Configuration
 
 1. Go to **Settings > Sales**
 2. Scroll down to **"WhatsApp Notifications"** section
 3. Configure:
-   - **WhatsApp API URL**: Your WhatsApp Business API endpoint
-   - **WhatsApp API Token**: Your access token
+   - **Twilio API Token**: Must be in format `ACCOUNT_SID|AUTH_TOKEN`
+   - **WhatsApp From Number**: Your Twilio WhatsApp-enabled phone number
+   - **Customer Template SID**: Your approved customer template SID (e.g., HX8264756fadd035142c0905cca6b6b594)
+   - **Employee Template SID**: Your approved employee template SID (e.g., HX3e140b59baa66fb67a2172a7442ec2d1)
    - **Employee Phone Number**: Phone number to receive order alerts
-   - **Message Templates**: Customize customer and employee messages
 
 ## Requirements
 
 - Odoo 18.0
-- WhatsApp Business API access
+- Python `twilio` package (`pip install twilio`)
+- Twilio account with WhatsApp Business API access
+- Approved Twilio WhatsApp message templates
 - `sale` and `website_sale` modules installed
 
 ## Message Variables
 
-### Customer Messages
-- `{customer_name}` - Customer's name
-- `{order_name}` - Order number
-- `{amount_total}` - Total amount with currency
-- `{date_order}` - Order date
+### Twilio Template Variables
 
-### Employee Messages
-- All customer variables plus:
-- `{customer_phone}` - Customer's phone number
+#### Customer Template Variables (confimundo_order_confirmation_template)
+- Variable 1: Customer name
+- Variable 2: Order date (YYYY-MM-DD format)
+- Variable 3: Total amount with currency
+
+#### Employee Template Variables (confimundo_order_notification_employee)
+- Variable 1: Customer name
+- Variable 2: Order reference number
+- Variable 3: Total amount with currency
+- Variable 4: Order date with time (YYYY-MM-DD HH:MM format)
+- Variable 5: Customer phone number
+
+
 
 ## License
 
